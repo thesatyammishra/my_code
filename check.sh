@@ -28,34 +28,37 @@ read -p "Enter your NAT instance security group name: " nat_sg_name
 read -p "Enter your NAT instance security group key name: " nat_sg_key_name
 read -p "Enter your NAT instance security group key value: " nat_sg_key_value
 nat_sg_id=`aws ec2 create-security-group --group-name $nat_sg_name --description "NAT security group" --vpc-id $vpc_id --tag-specifications 'ResourceType=security-group,Tags=[{Key='$nat_sg_key_name',Value='$nat_sg_key_value'}]' --query GroupId --output text`
-read -p "Enter your ip address: " my_ip
 aws ec2 authorize-security-group-ingress --group-id $nat_sg_id --protocol tcp --port 80 --cidr $private_cidr_block
-aws ec2 authorize-security-group-ingress --group-id $nat_sg_id --protocol tcp --port 22 --cidr $my_ip
+aws ec2 authorize-security-group-ingress --group-id $nat_sg_id --protocol tcp --port 22 --cidr 0.0.0.0/0
 aws ec2 authorize-security-group-ingress --group-id $nat_sg_id --protocol tcp --port 443 --cidr $private_cidr_block
 aws ec2 authorize-security-group-ingress --group-id $nat_sg_id --protocol icmp --port -1 --cidr $private_cidr_block
 read -p "Enter your public instance security group name: " public_sg_name
 read -p "Enter your public instance security group key name: " public_sg_key_name
 read -p "Enter your public instance security group key value: " public_sg_key_value
 public_sg_id=`aws ec2 create-security-group --group-name $public_sg_name --description "public security group" --vpc-id $vpc_id --tag-specifications 'ResourceType=security-group,Tags=[{Key='$public_sg_key_name',Value='$public_sg_key_value'}]' --query GroupId --output text`
-aws ec2 authorize-security-group-ingress --group-id $public_sg_id --protocol tcp --port 80 --cidr $my_ip
-aws ec2 authorize-security-group-ingress --group-id $public_sg_id --protocol tcp --port 22 --cidr $my_ip
-aws ec2 authorize-security-group-ingress --group-id $public_sg_id --protocol tcp --port 443 --cidr $my_ip
+aws ec2 authorize-security-group-ingress --group-id $public_sg_id --protocol tcp --port 80 --cidr 0.0.0.0/0
+aws ec2 authorize-security-group-ingress --group-id $public_sg_id --protocol tcp --port 22 --cidr 0.0.0.0/0
+aws ec2 authorize-security-group-ingress --group-id $public_sg_id --protocol tcp --port 443 --cidr 0.0.0.0/0
 read -p "Enter your private instance security group name: " private_sg_name
 read -p "Enter your private instance security group key name: " private_sg_key_name
 read -p "Enter your private instance security group key value: " private_sg_key_value
 private_sg_id=`aws ec2 create-security-group --group-name $private_sg_name --description "private security group" --vpc-id $vpc_id --tag-specifications 'ResourceType=security-group,Tags=[{Key='$private_sg_key_name',Value='$private_sg_key_value'}]' --query GroupId --output text`
-aws ec2 authorize-security-group-ingress --group-id $private_sg_id --protocol tcp --port 80 --cidr $my_ip
+aws ec2 authorize-security-group-ingress --group-id $private_sg_id --protocol tcp --port 80 --cidr 0.0.0.0/0
 aws ec2 authorize-security-group-ingress --group-id $private_sg_id --protocol tcp --port 8080 --source-group $public_sg_id
 aws ec2 authorize-security-group-ingress --group-id $private_sg_id --protocol all --port all --source-group $nat_sg_id
-aws ec2 authorize-security-group-ingress --group-id $private_sg_id --protocol tcp --port 22 --cidr $my_ip
+aws ec2 authorize-security-group-ingress --group-id $private_sg_id --protocol tcp --port 22 --cidr 0.0.0.0/0
 aws ec2 authorize-security-group-ingress --group-id $private_sg_id --protocol tcp --port 22 --cidr $public_cidr_block
-aws ec2 authorize-security-group-ingress --group-id $private_sg_id --protocol tcp --port 443 --cidr $my_ip
+aws ec2 authorize-security-group-ingress --group-id $private_sg_id --protocol tcp --port 443 --cidr 0.0.0.0/0
 read -p "Enter name for your key pair: " key_pair
 aws ec2 create-key-pair --key-name $key_pair --query 'KeyMaterial' --output text > $key_pair
+sudo chmod 600 $key_pair
 read -p "Enter your nat instance ami id: " nat_ami_id
 read -p "Enter your nat instance key name: " nat_instance_key_name
 read -p "Enter your nat instance key value: " nat_instance_key_value
-aws ec2 run-instances --image-id $nat_ami_id --count 1 --instance-type t2.micro --key-name $key_pair --subnet-id $public_subnet_id --security-group-ids $nat_sg_id --associate-public-ip-address --tag-specifications 'ResourceType=instance,Tags=[{Key='$nat_instance_key_name',Value='$nat_instance_key_value'}]'
+aws ec2 run-instances --image-id $nat_ami_id --count 1 --instance-type t2.micro --key-name $key_pair --subnet-id $public_subnet_id --security-group-ids $nat_sg_id --associate-public-ip-address --tag-specifications 'ResourceType=instance,Tags=[{Key='$nat_instance_key_name',Value='$nat_instance_key_value'}]' 
+read -p "Enter your nat instance id that you have created: " nat_instance_id
+aws ec2 create-route --route-table-id $private_rt --destination-cidr-block 0.0.0.0/0 --instance-id $nat_instance_id
+aws ec2 modify-instance-attribute  --instance-id $nat_instance_id --source-dest-check | --no-source-dest-check
 read -p "Enter your public instance ami id: " public_ami_id
 read -p "Enter your public instance key name: " public_instance_key_name
 read -p "Enter your public instance key value: " public_instance_key_value
@@ -64,4 +67,50 @@ read -p "Enter your private instance ami id: " private_ami_id
 read -p "Enter your private instance key name: " private_instance_key_name
 read -p "Enter your private instance key value: " private_instance_key_value
 aws ec2 run-instances --image-id $private_ami_id --count 1 --instance-type t2.micro --key-name $key_pair --subnet-id $private_subnet_id --security-group-ids $private_sg_id --associate-public-ip-address  --tag-specifications 'ResourceType=instance,Tags=[{Key='$private_instance_key_name',Value='$private_instance_key_value'}]' 
+read -p "Enter your public ip for ssh: " public_ip
+ssh -i ec2-user@$public_ip $key_pair
+sudo yum install httpd
+sudo yum install -y mod_ssl
+read -p 'Enter your key name for ssl certificate: ' name
+read -p 'Enter the org name for ssl certificate: ' name
+sudo openssl genrsa -des3 -out $name.key 1024 
+sudo openssl req -new -key $name.key -out $name.csr
+sudo cp $name.key $name.key.org
+sudo openssl rsa -in $name.key.org -out $name.key
+sudo openssl x509 -req -days 365 -in $name.csr -signkey $name.key -out $name.crt
+sudo mv $name.* /etc/pki/tls/certs/ 
+read -p 'Enter your conf file name: ' virtualhost 
+read -p 'Enter ServerName: ' servername
+read -p 'Enter serverAlias: ' serveralias 
+sudo touch $virtualhost
+sudo chmod 666 $virtualhost
+read -p 'Enter your private IP: ' private_ip
+echo "<VirtualHost *:443>" >>$virtualhost 
+echo "          ServerAdmin webmaster@localhost">>$virtualhost 
+echo "          ServerName "$servername>>$virtualhost
+echo "          ServerAlias "$serveralias>>$virtualhost
+echo "          DocumentRoot /var/www/html/">>$virtualhost
+echo "          SSLEngine on">>$virtualhost
+echo "          SSLCertificateFile /etc/pki/tls/certs/"$name.crt>>$virtualhost
+echo "          SSLCertificateKeyFile /etc/pki/tls/certs/"$name.key>>$virtualhost
+echo "          ">>$virtualhost
+echo "          SSLProxyEngine on">>$virtualhost
+echo "          ProxyPass / http://"$private_ip":8080/">>$virtualhost
+echo "          ProxyPassReverse / http://"$private_ip":8080/">>$virtualhost
+echo "</VirtualHost>">>$virtualhost
+sudo chmod 666 /etc/httpd/conf.d/$virtualhost.conf
+sudo cp $virtualhost /etc/httpd/conf.d/$virtualhost.conf 
+sudo chmod 666 /etc/hosts 
+echo $public_ip" " $servername>>/etc/hosts
+sudo chmod 644 /etc/hosts
+ssh -i $key_pair ec2-user@$private_ip sudo yum install java
+ssh -i $key_pair ec2-user@$private_ip sudo wget https://downloads.apache.org/tomcat/tomcat-8/v8.5.61/bin/apache-tomcat-8.5.61.tar.gz
+ssh -i $key_pair ec2-user@$private_ip sudo tar -xvf apache-tomcat-8.5.61.tar.gz
+ssh -i $key_pair ec2-user@$private_ip sudo wget https://get.jenkins.io/war/2.272/jenkins.war
+ssh -i $key_pair ec2-user@$private_ip sudo chmod 755 /home/ec2-user/apache-tomcat-8.5.61/webapps/
+ssh -i $key_pair ec2-user@$private_ip sudo mv /home/ec2-user/jenkins.war /home/ec2-user/apache-tomcat-8.5.61/webapps/
+sudo systemctl start httpd
+ssh -i $key_pair ec2-user@$private_ip sudo chmod +x /home/ec2-user/apache-tomcat-8.5.61/bin/
+ssh -i $key_pair ec2-user@$private_ip cd /apache-tomcat-8.5.61/bin && sudo chmod +x startup.sh && sudo chmod +x shutdown.sh && sudo ./startup.sh
+ 
 
