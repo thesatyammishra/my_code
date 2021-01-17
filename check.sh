@@ -69,40 +69,40 @@ read -p "Enter your private instance key value: " private_instance_key_value
 aws ec2 run-instances --image-id $private_ami_id --count 1 --instance-type t2.micro --key-name $key_pair --subnet-id $private_subnet_id --security-group-ids $private_sg_id --associate-public-ip-address  --tag-specifications 'ResourceType=instance,Tags=[{Key='$private_instance_key_name',Value='$private_instance_key_value'}]' 
 read -p "Enter your public ip for ssh: " public_ip
 ssh -i ec2-user@$public_ip $key_pair
-sudo yum install httpd
-sudo yum install -y mod_ssl
-read -p 'Enter your key name for ssl certificate: ' name
-read -p 'Enter the org name for ssl certificate: ' name
-sudo openssl genrsa -des3 -out $name.key 1024 
-sudo openssl req -new -key $name.key -out $name.csr
-sudo cp $name.key $name.key.org
-sudo openssl rsa -in $name.key.org -out $name.key
-sudo openssl x509 -req -days 365 -in $name.csr -signkey $name.key -out $name.crt
-sudo mv $name.* /etc/pki/tls/certs/ 
-read -p 'Enter your conf file name: ' virtualhost 
-read -p 'Enter ServerName: ' servername
-read -p 'Enter serverAlias: ' serveralias 
-sudo touch $virtualhost
-sudo chmod 666 $virtualhost
-read -p 'Enter your private IP: ' private_ip
-echo "<VirtualHost *:443>" >>$virtualhost 
-echo "          ServerAdmin webmaster@localhost">>$virtualhost 
-echo "          ServerName "$servername>>$virtualhost
-echo "          ServerAlias "$serveralias>>$virtualhost
-echo "          DocumentRoot /var/www/html/">>$virtualhost
-echo "          SSLEngine on">>$virtualhost
-echo "          SSLCertificateFile /etc/pki/tls/certs/"$name.crt>>$virtualhost
-echo "          SSLCertificateKeyFile /etc/pki/tls/certs/"$name.key>>$virtualhost
-echo "          ">>$virtualhost
-echo "          SSLProxyEngine on">>$virtualhost
-echo "          ProxyPass / http://"$private_ip":8080/">>$virtualhost
-echo "          ProxyPassReverse / http://"$private_ip":8080/">>$virtualhost
-echo "</VirtualHost>">>$virtualhost
-sudo chmod 666 /etc/httpd/conf.d/$virtualhost.conf
-sudo cp $virtualhost /etc/httpd/conf.d/$virtualhost.conf 
-sudo chmod 666 /etc/hosts 
-echo $public_ip" " $servername>>/etc/hosts
-sudo chmod 644 /etc/hosts
+ssh -i $key_pair ec2-user@$public_ip sudo yum install httpd
+ssh -i $key_pair ec2-user@$public_ip sudo yum install -y mod_ssl
+ssh -i $key_pair ec2-user@$public_ip read -p 'Enter your key name for ssl certificate: ' name
+ssh -i $key_pair ec2-user@$public_ip read -p 'Enter the org name for ssl certificate: ' name
+ssh -i $key_pair ec2-user@$public_ip sudo openssl genrsa -des3 -out $name.key 1024 
+ssh -i $key_pair ec2-user@$public_ip sudo openssl req -new -key $name.key -out $name.csr
+ssh -i $key_pair ec2-user@$public_ip sudo cp $name.key $name.key.org
+ssh -i $key_pair ec2-user@$public_ip sudo openssl rsa -in $name.key.org -out $name.key
+ssh -i $key_pair ec2-user@$public_ip sudo openssl x509 -req -days 365 -in $name.csr -signkey $name.key -out $name.crt
+ssh -i $key_pair ec2-user@$public_ip sudo mv $name.* /etc/pki/tls/certs/ 
+ssh -i $key_pair ec2-user@$public_ip read -p 'Enter your conf file name: ' virtualhost 
+ssh -i $key_pair ec2-user@$public_ip read -p 'Enter ServerName: ' servername
+ssh -i $key_pair ec2-user@$public_ip read -p 'Enter serverAlias: ' serveralias 
+ssh -i $key_pair ec2-user@$public_ip sudo touch $virtualhost
+ssh -i $key_pair ec2-user@$public_ip sudo chmod 666 $virtualhost
+ssh -i $key_pair ec2-user@$public_ip read -p 'Enter your private IP: ' private_ip
+ssh -i $key_pair ec2-user@$public_ip echo "<VirtualHost *:443>" >>$virtualhost 
+ssh -i $key_pair ec2-user@$public_ip echo "          ServerAdmin webmaster@localhost">>$virtualhost 
+ssh -i $key_pair ec2-user@$public_ip echo "          ServerName "$servername>>$virtualhost
+ssh -i $key_pair ec2-user@$public_ip echo "          ServerAlias "$serveralias>>$virtualhost
+ssh -i $key_pair ec2-user@$public_ip echo "          DocumentRoot /var/www/html/">>$virtualhost
+ssh -i $key_pair ec2-user@$public_ip echo "          SSLEngine on">>$virtualhost
+ssh -i $key_pair ec2-user@$public_ip echo "          SSLCertificateFile /etc/pki/tls/certs/"$name.crt>>$virtualhost
+ssh -i $key_pair ec2-user@$public_ip echo "          SSLCertificateKeyFile /etc/pki/tls/certs/"$name.key>>$virtualhost
+ssh -i $key_pair ec2-user@$public_ip echo "          ">>$virtualhost
+ssh -i $key_pair ec2-user@$public_ip echo "          SSLProxyEngine on">>$virtualhost
+ssh -i $key_pair ec2-user@$public_ip echo "          ProxyPass / http://"$private_ip":8080/">>$virtualhost
+ssh -i $key_pair ec2-user@$public_ip echo "          ProxyPassReverse / http://"$private_ip":8080/">>$virtualhost
+ssh -i $key_pair ec2-user@$public_ip echo "</VirtualHost>">>$virtualhost
+ssh -i $key_pair ec2-user@$public_ip sudo chmod 666 /etc/httpd/conf.d/$virtualhost.conf
+ssh -i $key_pair ec2-user@$public_ip sudo cp $virtualhost /etc/httpd/conf.d/$virtualhost.conf 
+ssh -i $key_pair ec2-user@$public_ip sudo chmod 666 /etc/hosts 
+ssh -i $key_pair ec2-user@$public_ip echo $public_ip" " $servername>>/etc/hosts
+ssh -i $key_pair ec2-user@$public_ip sudo chmod 644 /etc/hosts
 ssh -i $key_pair ec2-user@$private_ip sudo yum install java
 ssh -i $key_pair ec2-user@$private_ip sudo wget https://downloads.apache.org/tomcat/tomcat-8/v8.5.61/bin/apache-tomcat-8.5.61.tar.gz
 ssh -i $key_pair ec2-user@$private_ip sudo tar -xvf apache-tomcat-8.5.61.tar.gz
